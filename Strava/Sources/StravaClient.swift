@@ -9,6 +9,7 @@
 import Alamofire
 import AlamofireObjectMapper
 
+
 public enum StravaAccessScope: String {
     case `public` = "public"
     case write = "write"
@@ -24,7 +25,25 @@ public class StravaClient: NSObject {
     public static let baseURL: String = "https://www.strava.com/api/v3"
     
     fileprivate var callbackURL: String?
-    fileprivate var authToken: String?
+    fileprivate var authToken: String? {
+        set {
+            let defaults = UserDefaults.standard
+            defaults.set(newValue, forKey: "oauthtoken")
+        }
+        get {
+            let defaults = UserDefaults.standard
+            let val = defaults.string(forKey: "oauthtoken")
+            return val
+        }
+    }
+    var hasToken : Bool {
+        if authToken != nil {
+            return true
+        } else {
+            return false
+        }
+    }
+    
     fileprivate var clientId: Int64?
     fileprivate var accessScope: StravaAccessScope? = nil
     fileprivate var clientSecret: String?
@@ -1434,14 +1453,14 @@ public extension StravaClient {
     ///   - file: The actual activity data, if gzipped the data_type must end with .gz (select `...Zipped` `Activity upload type`)
     ///   - completion: The closure called when request is complete
     func uploadAnActivity(activityType: ActivityType?,
-                          name: String? = nil,
+                          name: String,
                           description: String? = nil,
                           isPrivate: Bool = false,
                           isTrainer: Bool,
                           isCommute: Bool,
                           dataType: ActivityUploadType,
                           externalId: String,
-                          file: Data,
+                          data : Data,
                           completion: @escaping (StravaResponse<ActivityUploadStatus>) -> Void) {
         var req = StravaRequest<ActivityUploadStatus>()
         req.pathComponent = "/uploads"
@@ -1455,8 +1474,14 @@ public extension StravaClient {
         
         req.addToken(token: StravaClient.instance.authToken!)
         
-        req.uploadRequest(data: file, { response in
-            print(response)
+        req.uploadRequest(data : data, activityName: name, { (response : StravaResponse<ActivityUploadStatus>) in
+            print("response here is \(response)")
+            
+
+            completion(response)
+            //let stravaResponse = StravaResponse.Success(response.value)
+            //completion(response)
+        
         })
     }
     
